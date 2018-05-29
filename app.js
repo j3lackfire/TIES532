@@ -4,6 +4,12 @@
 const express = require('express');
 const app = express();
 
+/*dependencies:
+    express - basic to set up a server
+    dropbox - for dropbox
+    isometric-fetch - dropbox advice using this
+*/
+
 app.get('/', function(req, res){
     res.send("Hello world!");
 });
