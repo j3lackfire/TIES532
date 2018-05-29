@@ -8,7 +8,8 @@ const app = express();
     express - basic to set up a server
     dropbox - for dropbox
     isometric-fetch - dropbox advice using this
-*/
+    mkdirp - to create a directory to save file and stuffs //only to test on local though
+ */
 
 app.get('/', function(req, res){
     res.send("Hello world!");

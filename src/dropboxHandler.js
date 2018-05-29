@@ -14,6 +14,10 @@ let baseParam = {
     limit: 50
 }
 
+let downloadFileParam = {
+
+}
+
 let allFolders = []
 let allFiles = []
 
@@ -52,7 +56,7 @@ let onServerResponseReceived = (res) => {
     }
 }
 
-function initDropbox(_accessToken) {
+function listAllFoldersAndFiles(_accessToken) {
     allFolders = []
     allFiles = []
     new Dropbox({ accessToken: _accessToken })
@@ -65,7 +69,13 @@ function onListingCompleted() {
     console.log('\n\non Listing Completed: All folder')
     console.log(allFolders)
     console.log('\nNumber of files')
-    console.log(allFiles.length)
+    console.log(allFiles)
 }
 
-initDropbox(myAccessToken)
+dbx.filesDownload({
+    path: '/duc_dog.jpg'
+}).then(response => {
+    console.log(response)
+}).catch(onErrorReceived)
+
+// listAllFoldersAndFiles(myAccessToken)
