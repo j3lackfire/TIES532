@@ -63,12 +63,7 @@ function downloadFileSingle(path, callback) {
 function makeDirectory() {
     for (let i = 0; i < allFolders.length; i ++) {
         mkdirp('cache' + allFolders[i], (err) => {
-            if (err) {
-                console.error(err)
-            }
-            else {
-                console.log('Succesfully create a directory: ' + allFolders[i])
-            }
+            console.log(err ? err : 'Succesfully create a directory: ' + allFolders[i])
         });
     }
 }
@@ -120,7 +115,5 @@ function onListingCompleted(callback) {
         })
     }
 }
-
-// initDropboxHandler(myAccessToken)
 
 module.exports.initDropboxHandler = initDropboxHandler
