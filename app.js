@@ -10,10 +10,15 @@ const dropboxHandler = require('./src/dropboxHandler')
     express - basic to set up a server
     dropbox - for dropbox
     isometric-fetch - dropbox advice using this
+    request - to send https requst to server
+    xml2js - to parse the xml data from sendspace to json format. Easier to work with
     //both of this might not be neccessary if I just cached the files download to memory somehow
     mkdirp - to create a directory to save file and stuffs //only to test on local though
     fs - file system, to save file and stuffs
  */
+
+let dropboxAccessKey = 'KU1I6ilkxrAAAAAAAAAADmph3aEctjmw5LrRrAxHBeBsLabN0w2rN2j8hVlt84NA'
+let sendspaceApiKey = 'M3AL0C04KU'
 
 app.get('/', (req, res) => {
     res.json({
@@ -23,7 +28,7 @@ app.get('/', (req, res) => {
 
 app.get('/dropboxHandler', (req, res) => {
     dropboxHandler.initDropboxHandler(
-        'KU1I6ilkxrAAAAAAAAAADmph3aEctjmw5LrRrAxHBeBsLabN0w2rN2j8hVlt84NA',
+        dropboxAccessKey,
         (_error, _message) => {
             if (_error) {
                 res.json({
