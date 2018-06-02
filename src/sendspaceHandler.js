@@ -5,6 +5,9 @@ var crypto = require('crypto')
 let request = require('request')
 let xml2js = require('xml2js');
 let parser = new xml2js.Parser();
+let fs = require('fs')
+
+var FormData = require('form-data');
 
 let myUserName = 'minhduc.gameregistry@gmail.com'
 let myApiKey = 'M3AL0C04KU'
@@ -124,23 +127,19 @@ function uploadFileSingle(filePath, callback) {
             callback(err)
         } else {
             getUploadInfo(res, (err_2, res_2) => {
-                _uploadFile(filePath, res_2.upload[0], callback)
                 //sendspace response data and this xml parser tool are weird :/
-                console.log(res_2.upload[0].$)
+                _uploadFile(filePath, res_2.upload[0].$, callback)
             })
         }
     })
 }
 
-function _uploadFile(binaryFile, uploadInfo, callback) {
-    let uploadFormData = {
-        MAX_FILE_SIZE: uploadInfo.max_file_size,
-        UPLOAD_IDENTIFIER: uploadInfo.upload_identifier,
-        extra_info: uploadInfo.extra_info,
-        userFile: binaryFile
-    }
-    request.post(
-        {url:uploadInfo.url, formData:uploadFormData},
+function _uploadFile(file, uploadInfo, callback) {
+    console.log('\n\nRequest post')
+    console.log(uploadInfo)
+
+    let req = request.post(
+        uploadInfo.url,
         (err, httpResponse, body) => {
             if (err) {
                 console.log('Error uploading data to Sendspace!')
@@ -148,9 +147,25 @@ function _uploadFile(binaryFile, uploadInfo, callback) {
             } else {
                 console.log('Successfully upload data to the sendspace server!')
                 console.log(body)
+                console.log('\n\n**************\n\n')
                 callback(null, body)
             }
         })
+    let form = req.form()
+
+    form.append('MAX_FILE_SIZE', uploadInfo.max_file_size)
+    form.append('UPLOAD_IDENTIFIER', uploadInfo.upload_identifier)
+    form.append('extra_info', uploadInfo.extra_info)
+    // form.append('UPLOAD_IDENTIFIER', 'ascb;alskcjb')
+    // form.append('extra_info', ';alxkcjb;lakjcb')
+    form.append('userFile',
+        "Hello world",
+        {
+            fileName:'MyFile.txt',
+            contentType: 'binary'
+        }
+    )
+
 }
 
 // uploadFileSingle(null, () => {})

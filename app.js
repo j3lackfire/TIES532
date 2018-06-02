@@ -11,10 +11,12 @@ const dropboxHandler = require('./src/dropboxHandler')
     dropbox - for dropbox
     isometric-fetch - dropbox advice using this
     request - to send https requst to server
+    form-data - form data to send file to sendspace
     xml2js - to parse the xml data from sendspace to json format. Easier to work with
     //both of this might not be neccessary if I just cached the files download to memory somehow
     mkdirp - to create a directory to save file and stuffs //only to test on local though
     fs - file system, to save file and stuffs
+    crypto - for md5 encryption, requred by sendspace
  */
 
 let dropboxAccessKey = 'KU1I6ilkxrAAAAAAAAAADmph3aEctjmw5LrRrAxHBeBsLabN0w2rN2j8hVlt84NA'
