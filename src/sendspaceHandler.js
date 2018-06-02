@@ -159,9 +159,9 @@ function _uploadFile(file, uploadInfo, callback) {
     // form.append('UPLOAD_IDENTIFIER', 'ascb;alskcjb')
     // form.append('extra_info', ';alxkcjb;lakjcb')
     form.append('userFile',
-        "Hello world",
+        file,
         {
-            fileName:'MyFile.txt',
+            fileName:'MyFile.jpg',
             contentType: 'binary'
         }
     )
