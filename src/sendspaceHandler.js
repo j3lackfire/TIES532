@@ -1,24 +1,25 @@
 /**
  * Created by Le Pham Minh Duc on 31-May-18.
  */
-var crypto = require('crypto')
-let request = require('request')
+let crypto = require('crypto');
+let request = require('request');
 let xml2js = require('xml2js');
 let parser = new xml2js.Parser();
-let fs = require('fs')
+let fs = require('fs');
+let stream = require('stream');
 
-var FormData = require('form-data');
+let FormData = require('form-data');
 
-let myUserName = 'minhduc.gameregistry@gmail.com'
-let myApiKey = 'M3AL0C04KU'
-let baseRestfulApi = 'http://api.sendspace.com/rest/'
-let myPasswordMd5 = '6be3c296bfa4c35c1b5fcdbd1bc989a8'
-let sessionKey = 'olnqkn2dvhhvzkwcro60aozxuxnemi61'
+let myUserName = 'minhduc.gameregistry@gmail.com';
+let myApiKey = 'M3AL0C04KU';
+let baseRestfulApi = 'http://api.sendspace.com/rest/';
+let myPasswordMd5 = '6be3c296bfa4c35c1b5fcdbd1bc989a8';
+let sessionKey = 'olnqkn2dvhhvzkwcro60aozxuxnemi61';
 
 function getRequestTokenUrl() {
     return 'http://api.sendspace.com/rest/?method=auth.createtoken' +
-    '&api_key=' + myApiKey +
-    '&api_version=1.2&response_format=json&app_version=0.1'
+        '&api_key=' + myApiKey +
+        '&api_version=1.2&response_format=json&app_version=0.1'
 }
 
 function getLogInRequestUrl(token, username, tokenPass) {
@@ -30,9 +31,9 @@ function getLogInRequestUrl(token, username, tokenPass) {
 
 function getAppToken(callback) {
     request(getRequestTokenUrl(), (error, response, body) => {
-        console.log(getRequestTokenUrl())
+        console.log(getRequestTokenUrl());
         if (error) {
-            console.log('Error requesting token from the sendspace server')
+            console.log('Error requesting token from the sendspace server');
             callback(error, null)
         } else {
             parser.parseString(body, function (err, result) {
@@ -123,49 +124,48 @@ function getUploadInfo(sessionKey, callback) {
 function uploadFileSingle(filePath, callback) {
     sendspaceLogin((err, res) => {
         if (err) {
-            console.log('Error logging in sendspace!')
+            console.log('Error logging in sendspace!');
             callback(err)
         } else {
-            getUploadInfo(res, (err_2, res_2) => {
+            getUploadInfo(res, (err, res) => {
                 //sendspace response data and this xml parser tool are weird :/
-                _uploadFile(filePath, res_2.upload[0].$, callback)
+                _uploadFile(filePath, res.upload[0].$, callback)
             })
         }
     })
 }
 
-function _uploadFile(file, uploadInfo, callback) {
-    console.log('\n\nRequest post')
-    console.log(uploadInfo)
+function _uploadFile(filePath, uploadInfo, callback) {
+    console.log('\n\nRequest post');
+    console.log(uploadInfo);
 
     let req = request.post(
         uploadInfo.url,
         (err, httpResponse, body) => {
             if (err) {
-                console.log('Error uploading data to Sendspace!')
+                console.log('Error uploading data to Sendspace!');
                 callback(err, 'Error uploading data to Sendspace!')
             } else {
-                console.log('Successfully upload data to the sendspace server!')
-                console.log(body)
-                console.log('\n\n**************\n\n')
-                callback(null, body)
+                console.log('Successfully upload data to the Sendspace server!');
+                console.log(body);
+                console.log('\n\n**************\n\n');
+                callback(null, body);
             }
-        })
-    let form = req.form()
+        });
+    let form = req.form();
 
-    form.append('MAX_FILE_SIZE', uploadInfo.max_file_size)
-    form.append('UPLOAD_IDENTIFIER', uploadInfo.upload_identifier)
-    form.append('extra_info', uploadInfo.extra_info)
+    form.append('MAX_FILE_SIZE', uploadInfo.max_file_size);
+    form.append('UPLOAD_IDENTIFIER', uploadInfo.upload_identifier);
+    form.append('extra_info', uploadInfo.extra_info);
     // form.append('UPLOAD_IDENTIFIER', 'ascb;alskcjb')
     // form.append('extra_info', ';alxkcjb;lakjcb')
-    form.append('userFile',
-        file,
+    form.append('userfile',
+        fs.createReadStream(filePath),
         {
-            fileName:'MyFile.jpg',
+            fileName: 'MyFile.jpg',
             contentType: 'binary'
         }
-    )
-
+    );
 }
 
 // uploadFileSingle(null, () => {})
@@ -178,4 +178,4 @@ function _uploadFile(file, uploadInfo, callback) {
 //     console.log('Log out')
 // })
 
-module.exports.uploadFileSingle = uploadFileSingle
+module.exports.uploadFileSingle = uploadFileSingle;

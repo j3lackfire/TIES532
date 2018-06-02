@@ -4,7 +4,7 @@
 const express = require('express');
 const app = express();
 
-const dropboxHandler = require('./src/dropboxHandler')
+const dropboxHandler = require('./src/dropboxHandler');
 
 /*dependencies:
     express - basic to set up a server
@@ -19,8 +19,8 @@ const dropboxHandler = require('./src/dropboxHandler')
     crypto - for md5 encryption, requred by sendspace
  */
 
-let dropboxAccessKey = 'KU1I6ilkxrAAAAAAAAAADmph3aEctjmw5LrRrAxHBeBsLabN0w2rN2j8hVlt84NA'
-let sendspaceApiKey = 'M3AL0C04KU'
+let dropboxAccessKey = 'KU1I6ilkxrAAAAAAAAAADmph3aEctjmw5LrRrAxHBeBsLabN0w2rN2j8hVlt84NA';
+let sendspaceApiKey = 'M3AL0C04KU';
 
 app.get('/', (req, res) => {
     res.json({
@@ -44,8 +44,8 @@ app.get('/dropboxHandler', (req, res) => {
                 })
             }
         })
-})
+});
 
 app.listen(3003);
-console.log('Express app listening on port 3003')
+console.log('Express app listening on port 3003');
 

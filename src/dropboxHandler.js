@@ -2,11 +2,11 @@
  * Created by Le Pham Minh Duc on 29-May-18.
  */
 require('isomorphic-fetch'); // or another library of choice.
-let fs = require('fs')
+let fs = require('fs');
 let mkdirp = require('mkdirp');
 let Dropbox = require('dropbox').Dropbox;
 
-let sendspaceHandler = require('./sendspaceHandler')
+let sendspaceHandler = require('./sendspaceHandler');
 
 let myAccessToken = 'KU1I6ilkxrAAAAAAAAAADmph3aEctjmw5LrRrAxHBeBsLabN0w2rN2j8hVlt84NA';
 
@@ -70,35 +70,32 @@ let onServerResponseReceived = (res, callback) => {
 function onListingCompleted(callback) {
     console.log('Finish getting all the meta data from dropbox server / Start making directory')
     makeDirectory()
-    let totalNumberOfFiles = allFiles.length
+    let totalNumberOfFiles = allFiles.length;
     let numberOfSuccess = 0;
 
-    console.log('\n\nUpload one file to send space - ' + allFiles[0])
+    for (let i = 0; i < allFiles.length; i ++) {
+        downloadFileSingle(allFiles[i], (error, pathFull) => {
+            if (error) {
+                console.log('Error downloading the file. something is wrong!')
+                callback(error, 'Error downloading the file. something is wrong!')
+            } else {
+                numberOfSuccess ++;
+                console.log('File: -' + allFiles[i] + '- index: ' + numberOfSuccess + '/' + totalNumberOfFiles)
+                sendspaceHandler.uploadFileSingle(pathFull, (err1, res1) => {
+                    if (err1) {
+                        console.error('Error uploading file to sendspace')
+                        callback(err1, null)
+                    } else {
+                        if (numberOfSuccess >= totalNumberOfFiles) {
+                            console.log('The backup process is completed')
+                            callback(null, 'The backup process is completed, ' + totalNumberOfFiles + ' files is copied')
+                        }
+                    }
+                })
 
-    downloadFileSingle('/duc_dog.jpg', (err, res) => {
-        console.log(err)
-        console.log('File full path:' + res)
-        sendspaceHandler.uploadFileSingle(res, (err1, res1) => {
-            console.log('Error:' + err)
-            console.log('Res:' + res)
+            }
         })
-    })
-
-    // for (let i = 0; i < allFiles.length; i ++) {
-    //     downloadFileSingle(allFiles[i], (error) => {
-    //         if (error) {
-    //             console.log('Error downloading the file. something is wrong!')
-    //             callback(error, 'Error downloading the file. something is wrong!')
-    //         } else {
-    //             numberOfSuccess ++;
-    //             console.log('File: -' + allFiles[i] + '- index: ' + numberOfSuccess + '/' + totalNumberOfFiles)
-    //             if (numberOfSuccess >= totalNumberOfFiles) {
-    //                 console.log('The backup process is completed')
-    //                 callback(null, 'The backup process is completed, ' + totalNumberOfFiles + ' files is copied')
-    //             }
-    //         }
-    //     })
-    // }
+    }
 }
 
 function downloadFileSingle(_path, callback) {
@@ -123,24 +120,31 @@ function saveFileToLocal(name, fileBinary, callback) {
             callback(err, null)
         } else {
             console.log('file saved to local! ' + name);
-            callback(null, currentPath + "/cache/" + name)
+            callback(null, "./../cache" + name)
         }
     });
 }
 
+// dbx.filesDownload({path:'/papa.PNG'})
+//     .then((response) => {
+//         saveFileToLocal(response.path_lower, response.fileBinary, (err, filePath) => {
+//             if (err) {
+//                 console.error(err)
+//             } else {
+//                 console.log(filePath)
+//                 sendspaceHandler.uploadFileSingle(filePath, (err, res) => {
+//                     if (err) {
+//                         console.error(err)
+//                     } else {
+//                         console.log(res)
+//                     }
+//                 });
+//             }
+//         });
+//
+//
+//     }).catch(onErrorReceived);
 
-dbx.filesDownload({path:'/duc_dog.jpg'})
-    .then((response) => {
-        console.log('Receive file from dropbox')
-        console.log(response.path_lower)
-        console.log(response.fileBinary)
-        sendspaceHandler.uploadFileSingle(response.fileBinary, (err, res) => {
-            console.log('Error:' + err)
-            console.log('Res:' + res)
-        })
-        // saveFileToLocal(response.path_lower, response.fileBinary, callback)
-    }).catch(onErrorReceived)
 
 
-
-module.exports.initDropboxHandler = initDropboxHandler
+module.exports.initDropboxHandler = initDropboxHandler;
