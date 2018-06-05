@@ -7,6 +7,7 @@ let mkdirp = require('mkdirp');
 let Dropbox = require('dropbox').Dropbox;
 
 let sendspaceHandler = require('./sendspaceHandler');
+let middleware = require('./middleware');
 
 let myAccessToken = 'KU1I6ilkxrAAAAAAAAAADmph3aEctjmw5LrRrAxHBeBsLabN0w2rN2j8hVlt84NA';
 
@@ -19,6 +20,8 @@ let baseParam = {
 }
 
 let currentPath = process.cwd()
+console.log('current path: ' + currentPath)
+
 
 let allFolders = []
 let allFiles = []
@@ -72,37 +75,23 @@ function onListingCompleted(callback) {
     makeDirectory()
     let totalNumberOfFiles = allFiles.length;
     let numberOfSuccess = 0;
-
+    let localFiles = []
     for (let i = 0; i < allFiles.length; i ++) {
         downloadFileSingle(allFiles[i], (error, pathFull) => {
             if (error) {
-                console.log('Error downloading the file. something is wrong!')
+                console.error('Error downloading the file. something is wrong!')
                 callback(error, 'Error downloading the file. something is wrong!')
             } else {
                 numberOfSuccess ++;
                 console.log('File: -' + allFiles[i] + '- index: ' + numberOfSuccess + '/' + totalNumberOfFiles)
-                sendspaceHandler.uploadFileSingle(pathFull, (err1, res1) => {
-                    if (err1) {
-                        console.error('Error uploading file to sendspace')
-                        callback(err1, null)
-                    } else {
-                        if (numberOfSuccess >= totalNumberOfFiles) {
-                            console.log('The backup process is completed')
-                            callback(null, 'The backup process is completed, ' + totalNumberOfFiles + ' files is copied')
-                        }
-                    }
-                })
-
+                localFiles.push(pathFull)
+                if (numberOfSuccess >= totalNumberOfFiles) {
+                    console.log('The backup process is completed')
+                    middleware.backupFilesToSendspace(localFiles, callback)
+                }
             }
         })
     }
-}
-
-function downloadFileSingle(_path, callback) {
-    dbx.filesDownload({path:_path})
-        .then((response) => {
-            saveFileToLocal(response.path_lower, response.fileBinary, callback)
-        }).catch(onErrorReceived)
 }
 
 function makeDirectory() {
@@ -113,14 +102,21 @@ function makeDirectory() {
     }
 }
 
+function downloadFileSingle(_path, callback) {
+    dbx.filesDownload({path:_path})
+        .then((response) => {
+            saveFileToLocal(response.path_lower, response.fileBinary, callback)
+        }).catch(onErrorReceived)
+}
+
 function saveFileToLocal(name, fileBinary, callback) {
     fs.writeFile(currentPath + "/cache/" + name, fileBinary, "binary", function(err) {
         if(err) {
             console.log('Error happend in saving file to local!');
             callback(err, null)
         } else {
-            console.log('file saved to local! ' + name);
-            callback(null, "./../cache" + name)
+            // console.log('file saved to local! ' + name);
+            callback(null, "./cache" + name)
         }
     });
 }
@@ -132,7 +128,7 @@ function saveFileToLocal(name, fileBinary, callback) {
 //                 console.error(err)
 //             } else {
 //                 console.log(filePath)
-//                 sendspaceHandler.uploadFileSingle(filePath, (err, res) => {
+//                 sendspaceHandler.uploadFiles(filePath, (err, res) => {
 //                     if (err) {
 //                         console.error(err)
 //                     } else {
@@ -144,7 +140,5 @@ function saveFileToLocal(name, fileBinary, callback) {
 //
 //
 //     }).catch(onErrorReceived);
-
-
 
 module.exports.initDropboxHandler = initDropboxHandler;
