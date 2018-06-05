@@ -20,6 +20,7 @@ let myPasswordMd5 = '6be3c296bfa4c35c1b5fcdbd1bc989a8';
 let sessionKey = '';
 let uploadInfo = {};
 
+// initialize sendspace first
 _loginAndGetUploadInfo((err, res) => {
     if (err) {
         console.error(err)
@@ -29,6 +30,14 @@ _loginAndGetUploadInfo((err, res) => {
         console.log(uploadInfo)
     }
 })
+
+// getFoldersInfo((err, res) => {
+//     if (err) {
+//         console.error(err)
+//     } else {
+//         console.log(res)
+//     }
+// })
 
 function checkSession(sessionKey, callback) {
     request(
@@ -110,6 +119,28 @@ function requestAppToken(callback) {
     })
 }
 
+function _getSessionKey(callback) {
+    if (sessionKey === '') {
+        sendspaceLogin((err, res) => {
+            callback(err ? null : res)
+        })
+    } else {
+        checkSession(sessionKey, (err, result) => {
+            if (err) {
+                callback(null)
+            } else {
+                if (!result) {
+                    sendspaceLogin((err, res) => {
+                        callback(err ? null : res)
+                    })
+                } else {
+                    callback(sessionKey)
+                }
+            }
+        })
+    }
+}
+
 function _getRequestTokenUrl() {
     return 'http://api.sendspace.com/rest/?method=auth.createtoken' +
         '&api_key=' + myApiKey +
@@ -121,6 +152,59 @@ function _getLogInRequestUrl(token, username, tokenPass) {
         'token=' + token +
         '&user_name=' + username +
         '&tokened_password=' + tokenPass
+}
+
+function _sendspaceResponseParser(error, response, body, callback) {
+    parser.parseString(body, function (err_2, result) {
+        if (err_2) {
+            console.log('Error when parsing xml data to json')
+            callback(err_2, null)
+        } else {
+            if (result.result.error) {
+                console.error('Error with the Sendspace response')
+                console.error(result.result.error[0])
+                callback(result.result.error[0], null)
+            } else {
+                callback(null, result.result)
+            }
+        }
+    })
+}
+
+function getFoldersInfo(callback) {
+    _getSessionKey((_session) => {
+        request('http://api.sendspace.com/rest/?method=folders.getall&session_key=' + _session,
+            (error, response, body) => {
+                _sendspaceResponseParser(error, response, body, (err_1, res_1) => {
+                    if (err_1) {
+                        callback(err_1, null)
+                    } else {
+                        let returnArray = []
+                        for (let i = 0; i < res_1.folder.length; i ++) {
+                            returnArray.push(res_1.folder[i].$)
+                        }
+                        callback(null, returnArray)
+                    }
+                })
+            }
+        )
+    })
+}
+
+//TODO
+function getFolderId(folderName, callback) {
+    getFoldersInfo((err, allFolders) => {
+        for (let i = 0; i < allFolders.length; i ++) {
+            //if the list has it, return the id
+            callback(i)
+            return
+        }
+        callback(-1)
+    })
+}
+
+function createFolder(folderPath, parentPath, callback) {
+
 }
 
 function uploadFiles(filePath, callback) {
@@ -180,37 +264,6 @@ function _getUploadInfoUrl(sessionKey) {
     return 'http://api.sendspace.com/rest/?method=upload.getinfo' +
         '&session_key=' + sessionKey +
         '&speed_limit=0'
-}
-
-function _uploadFile(filePath, uploadInfo, callback) {
-    // console.log('\n\nUpload file - upload info');
-    // console.log(uploadInfo);
-    let req = request.post(
-        uploadInfo.url,
-        (err, httpResponse, body) => {
-            if (err) {
-                console.log('Error uploading data to Sendspace!');
-                console.error(err);
-                callback(err, 'Error uploading data to Sendspace!')
-            } else {
-                console.log('Successfully upload data to the Sendspace server!');
-                console.log(body);
-                console.log('\n\n+++++++++++++++++++++++++\n');
-                callback(null, body);
-            }
-        });
-    let form = req.form();
-
-    form.append('MAX_FILE_SIZE', uploadInfo.max_file_size);
-    form.append('UPLOAD_IDENTIFIER', uploadInfo.upload_identifier);
-    form.append('extra_info', uploadInfo.extra_info);
-    form.append('userfile',
-        fs.createReadStream(filePath),
-        {
-            fileName: 'MyFile.jpg',
-            contentType: 'binary'
-        }
-    );
 }
 
 function _uploadMultipleFiles(filesPath, uploadInfo, callback) {

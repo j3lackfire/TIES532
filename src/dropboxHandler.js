@@ -51,6 +51,7 @@ let onServerResponseReceived = (res, callback) => {
     console.log('onServerResponseReceived')
     for (let i = 0; i < res.entries.length; i ++) {
         if (isEntryFolder(res.entries[i])) {
+            // console.log(res.entries[i])
             allFolders.push(res.entries[i].path_lower)
         } else {
             if (isEntryFile(res.entries[i])) {
@@ -58,6 +59,7 @@ let onServerResponseReceived = (res, callback) => {
             }
         }
     }
+    // return
     if (res.has_more) {
         dbx.filesListFolderContinue( { cursor:res.cursor } )
             .then((res_2) => {
@@ -100,6 +102,14 @@ function makeDirectory() {
             console.log(err ? err : 'Succesfully create a directory: ' + allFolders[i])
         });
     }
+    middleware.duplicateFoldersToSendspace(allFolders, (err, res) => {
+        if (err) {
+            console.error('Error duplicate the folder to sendspace')
+        } else {
+            console.log('Successfully create all of the responding folder to sendspace')
+            console.log(res)
+        }
+    })
 }
 
 function downloadFileSingle(_path, callback) {
