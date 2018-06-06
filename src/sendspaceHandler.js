@@ -21,23 +21,23 @@ let sessionKey = '';
 let uploadInfo = {};
 
 // initialize sendspace first
-_loginAndGetUploadInfo((err, res) => {
-    if (err) {
-        console.error(err)
-    } else {
-        console.log('Init sendspace successfully')
-        console.log(sessionKey)
-        console.log(uploadInfo)
-    }
-})
-
-// getFoldersInfo((err, res) => {
+// _loginAndGetUploadInfo((err, res) => {
 //     if (err) {
 //         console.error(err)
 //     } else {
-//         console.log(res)
+//         console.log('Init sendspace successfully')
+//         console.log(sessionKey)
+//         console.log(uploadInfo)
 //     }
 // })
+
+deleteAllFolders((err, res) => {
+    if (err) {
+        console.error(err)
+    } else {
+        console.log(res)
+    }
+})
 
 function checkSession(sessionKey, callback) {
     request(
@@ -191,19 +191,52 @@ function getFoldersInfo(callback) {
     })
 }
 
-//TODO
-function getFolderId(folderName, callback) {
-    getFoldersInfo((err, allFolders) => {
-        for (let i = 0; i < allFolders.length; i ++) {
-            //if the list has it, return the id
-            callback(i)
-            return
-        }
-        callback(-1)
+function createFolder(folderName, parentId, callback) {
+    _getSessionKey((_session) => {
+        request(
+            'http://api.sendspace.com/rest/?method=folders.create&session_key=' + _session +
+            '&name=' + folderName + '&shared=0&parent_folder_id=' + parentId,
+            (error, response, body) => {
+                _sendspaceResponseParser(error, response, body, (err_1, res_1) => {
+                    if (err_1) {
+                        callback(err_1, null)
+                    } else {
+                        callback(null, res_1.folder[0].$)
+                    }
+                })
+            }
+        )
     })
 }
 
-function createFolder(folderPath, parentPath, callback) {
+function deleteAllFolders(callback) {
+    let ids = []
+    getFoldersInfo((err, info) => {
+        for (let i = 0; i < info.length; i ++) {
+            if (info[i].name == 'Default') {
+                continue
+            }
+            ids.push(info[i].id)
+        }
+        let idString = ids[0]
+        for (let i = 1; i < ids.length; i ++) {
+            idString += ',' + ids[i]
+        }
+        request(
+            'http://api.sendspace.com/rest/?method=folders.delete&session_key=' + sessionKey +
+            '&folder_id=' + idString,
+            (error, response, body) => {
+                _sendspaceResponseParser(error, response, body, (err_1, res_1) => {
+                    if (err_1) {
+                        callback(err_1, null)
+                    } else {
+                        callback(null, res_1)
+                    }
+                })
+            }
+
+        )
+    })
 
 }
 
@@ -316,3 +349,5 @@ function _uploadMultipleFiles(filesPath, uploadInfo, callback) {
 // })
 
 module.exports.uploadFiles = uploadFiles;
+module.exports.getFoldersInfo = getFoldersInfo;
+module.exports.createFolder = createFolder

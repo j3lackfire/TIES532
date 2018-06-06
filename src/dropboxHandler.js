@@ -51,15 +51,16 @@ let onServerResponseReceived = (res, callback) => {
     console.log('onServerResponseReceived')
     for (let i = 0; i < res.entries.length; i ++) {
         if (isEntryFolder(res.entries[i])) {
-            // console.log(res.entries[i])
-            allFolders.push(res.entries[i].path_lower)
+            let addedEntry = {}
+            addedEntry.name = res.entries[i].name
+            addedEntry.path = res.entries[i].path_display
+            allFolders.push(addedEntry)
         } else {
             if (isEntryFile(res.entries[i])) {
                 allFiles.push(res.entries[i].path_lower)
             }
         }
     }
-    // return
     if (res.has_more) {
         dbx.filesListFolderContinue( { cursor:res.cursor } )
             .then((res_2) => {
@@ -75,6 +76,7 @@ let onServerResponseReceived = (res, callback) => {
 function onListingCompleted(callback) {
     console.log('Finish getting all the meta data from dropbox server / Start making directory')
     makeDirectory()
+    return
     let totalNumberOfFiles = allFiles.length;
     let numberOfSuccess = 0;
     let localFiles = []
@@ -98,8 +100,8 @@ function onListingCompleted(callback) {
 
 function makeDirectory() {
     for (let i = 0; i < allFolders.length; i ++) {
-        mkdirp(currentPath + '/cache' + allFolders[i], (err) => {
-            console.log(err ? err : 'Succesfully create a directory: ' + allFolders[i])
+        mkdirp(currentPath + '/cache' + allFolders[i].path, (err) => {
+            console.log(err ? err : 'Succesfully create a directory: ' + allFolders[i].path)
         });
     }
     middleware.duplicateFoldersToSendspace(allFolders, (err, res) => {
