@@ -21,15 +21,15 @@ let sessionKey = '';
 let uploadInfo = {};
 
 // initialize sendspace first
-// _loginAndGetUploadInfo((err, res) => {
-//     if (err) {
-//         console.error(err)
-//     } else {
-//         console.log('Init sendspace successfully')
-//         console.log(sessionKey)
-//         console.log(uploadInfo)
-//     }
-// })
+_loginAndGetUploadInfo((err, res) => {
+    if (err) {
+        console.error(err)
+    } else {
+        console.log('Init sendspace successfully')
+        console.log(sessionKey)
+        console.log(uploadInfo)
+    }
+})
 
 deleteAllFolders((err, res) => {
     if (err) {
@@ -240,6 +240,60 @@ function deleteAllFolders(callback) {
 
 }
 
+function getAllFiles(callback) {
+    getFoldersInfo((err, info) => {
+        if (err) {
+            callback(err, null)
+        } else {
+            _recursiveGetAllFiles(info, 0, [], (err_1, res_1) => {
+                if (err_1) {
+                    callback(err_1, null)
+                } else {
+                    callback(null, res_1)
+                }
+            })
+        }
+    })
+}
+
+function _recursiveGetAllFiles(foldersList, index, _fileList, callback) {
+    let currentId = foldersList[index].id
+    let currentName = foldersList[index].name
+    let fileList = _fileList
+    request(
+        'http://api.sendspace.com/rest/?method=folders.getcontents&session_key=' + sessionKey +
+        '&folder_id=' + currentId,
+        (error, response, body) => {
+            _sendspaceResponseParser(error, response, body, (err_1, res_1) => {
+                if (err_1) {
+                    console.error('Error getting files from Sendspace!')
+                    callback(err_1, null)
+                } else {
+                    if (typeof(res_1.file) == 'undefined') {
+                        if (index + 1 >= foldersList.length) {
+                            callback(null, fileList)
+                        } else {
+                            _recursiveGetAllFiles(foldersList, index + 1, fileList, callback)
+                        }
+                    } else {
+                        for (let i = 0; i < res_1.file.length; i ++) {
+                            let myFile = {}
+                            myFile.name = res_1.file[i].$.name
+                            myFile.folder_id = res_1.file[i].$.folder_id
+                            myFile.folder_name = currentName
+                            fileList.push(myFile)
+                        }
+                        if (index + 1 >= foldersList.length) {
+                            callback(null, fileList)
+                        } else {
+                            _recursiveGetAllFiles(foldersList, index + 1, fileList, callback)
+                        }
+                    }
+                }
+            })
+        })
+}
+
 function uploadFiles(filePath, callback) {
     if (sessionKey === '') {
         _loginAndGetUploadInfo((err, res) => {
@@ -350,4 +404,5 @@ function _uploadMultipleFiles(filesPath, uploadInfo, callback) {
 
 module.exports.uploadFiles = uploadFiles;
 module.exports.getFoldersInfo = getFoldersInfo;
-module.exports.createFolder = createFolder
+module.exports.createFolder = createFolder;
+module.exports.getAllFiles = getAllFiles;

@@ -57,7 +57,7 @@ let onServerResponseReceived = (res, callback) => {
             allFolders.push(addedEntry)
         } else {
             if (isEntryFile(res.entries[i])) {
-                allFiles.push(res.entries[i].path_lower)
+                allFiles.push(res.entries[i].path_display)
             }
         }
     }
@@ -75,41 +75,54 @@ let onServerResponseReceived = (res, callback) => {
 //this function is called when we receive everything from the dropbox server
 function onListingCompleted(callback) {
     console.log('Finish getting all the meta data from dropbox server / Start making directory')
-    makeDirectory()
-    return
-    let totalNumberOfFiles = allFiles.length;
-    let numberOfSuccess = 0;
-    let localFiles = []
-    for (let i = 0; i < allFiles.length; i ++) {
-        downloadFileSingle(allFiles[i], (error, pathFull) => {
-            if (error) {
-                console.error('Error downloading the file. something is wrong!')
-                callback(error, 'Error downloading the file. something is wrong!')
-            } else {
-                numberOfSuccess ++;
-                console.log('File: -' + allFiles[i] + '- index: ' + numberOfSuccess + '/' + totalNumberOfFiles)
-                localFiles.push(pathFull)
-                if (numberOfSuccess >= totalNumberOfFiles) {
-                    console.log('The backup process is completed')
-                    middleware.backupFilesToSendspace(localFiles, callback)
+    makeDirectory((err_makeFile) => {
+        if (err_makeFile) {
+            callback(err_makeFile)
+        } else {
+            middleware.getUnbackupedFiles(allFiles, (err_getFiles, res_files) => {
+                if (err_getFiles) {
+                    console.log(err_getFiles)
+                } else {
+                    console.log(res_files)
+                    let totalNumberOfFiles = res_files.length;
+                    let numberOfSuccess = 0;
+                    let localFiles = []
+                    for (let i = 0; i < res_files.length; i ++) {
+                        console.log(res_files[i].fullPath)
+                        downloadFileSingle(res_files[i].fullPath, (error, pathFull) => {
+                            if (error) {
+                                console.error('Error downloading the file. something is wrong!')
+                                callback(error, 'Error downloading the file. something is wrong!')
+                            } else {
+                                numberOfSuccess ++;
+                                console.log('File: -' + res_files[i].fullPath + '- index: ' + numberOfSuccess + '/' + totalNumberOfFiles)
+                                localFiles.push(pathFull)
+                                if (numberOfSuccess >= totalNumberOfFiles) {
+                                    console.log('The backup process is completed')
+                                    middleware.backupFilesToSendspace(localFiles, callback)
+                                }
+                            }
+                        })
+                    }
                 }
-            }
-        })
-    }
+            })
+        }
+    })
 }
 
-function makeDirectory() {
+function makeDirectory(callback) {
     for (let i = 0; i < allFolders.length; i ++) {
         mkdirp(currentPath + '/cache' + allFolders[i].path, (err) => {
             console.log(err ? err : 'Succesfully create a directory: ' + allFolders[i].path)
         });
     }
-    middleware.duplicateFoldersToSendspace(allFolders, (err, res) => {
+    middleware.duplicateFoldersToSendspace(allFolders, (err) => {
         if (err) {
             console.error('Error duplicate the folder to sendspace')
+            callback(err)
         } else {
             console.log('Successfully create all of the responding folder to sendspace')
-            console.log(res)
+            callback(null)
         }
     })
 }

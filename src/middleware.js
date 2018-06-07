@@ -6,12 +6,6 @@ let dropboxHandler = require('./dropboxHandler')
 
 let s = '/bascb/cav/d//alsvkj'
 
-//dropbox will call this function
-function compareFileWithSendspace(dropboxFiles, callback) {
-    //should call a function to list all of the folders and file currently exist in the sendspace
-    callback(null, dropboxFiles)
-}
-
 //duplicate the folders from dropbox to sendspace.
 function duplicateFoldersToSendspace(dropboxFoldersInfo, callback) {
     console.log('Duplicate the folder from dropbox to sendspace')
@@ -34,7 +28,7 @@ function duplicateFoldersToSendspace(dropboxFoldersInfo, callback) {
                 } else {
                     //do the things with folder
                     console.log('Successfully create all folders to sendspace')
-                    callback(null, 'OK')
+                    callback(null)
                 }
             })
         }
@@ -111,6 +105,56 @@ function _getSendspaceFolderID(folderName, sendspaceInfo) {
     return ''
 }
 
+//dropbox will call this function
+function getUnbackupedFiles(dropboxFiles, callback) {
+    sendspaceHandler.getAllFiles((err, ssFiles) => {
+        if (err) {
+            console.error('Error getting files from sendspace server')
+            callback(err, null)
+        } else {
+            let notExistFileList = []
+            //dropbox files is Path_Display
+            for (let i = 0; i < dropboxFiles.length; i ++) {
+                let isFileExist = false
+                for (let j = 0; j < ssFiles.length; j ++) {
+                    if (_compareDropboxAndSsFiles(_analyzeDropboxFiles(dropboxFiles[i]), ssFiles[j])) {
+                        isFileExist = true
+                        break
+                    }
+                }
+                if (!isFileExist) {
+                    notExistFileList.push(_analyzeDropboxFiles(dropboxFiles[i]))
+                }
+            }
+            callback(null, notExistFileList)
+        }
+    })
+}
+
+function _analyzeDropboxFiles(dropboxFiles) {
+    let returnVal = {}
+    returnVal.fullPath = dropboxFiles
+    let ss = dropboxFiles.split('/')
+    returnVal.name = ss[ss.length - 1]
+    returnVal.folder = ss[ss.length - 2]
+    return returnVal
+}
+
+function _compareDropboxAndSsFiles(dbFile, ssFile) {
+    return ((dbFile.name == ssFile.name) && //must have the same name AND
+        //same folder name or they are all at root
+            ((dbFile.folder == '' && ssFile.folder_name == 'Default') || (dbFile.folder == ssFile.folder_name)))
+
+    // if (dbFile.name != ssFile.name) {
+    //     return false
+    // }
+    // if (dbFile.folder == '' && ssFile.folder_name == 'Default') {
+    //     return true
+    // } else {
+    //     return (dbFile.folder == ssFile.folder_name)
+    // }
+}
+
 function backupFilesToSendspace(allFilePaths, callback) {
     console.log('backupFilesToSendspace')
     sendspaceHandler.uploadFiles(allFilePaths, (err, res) => {
@@ -125,4 +169,5 @@ function backupFilesToSendspace(allFilePaths, callback) {
 }
 
 module.exports.backupFilesToSendspace = backupFilesToSendspace;
-module.exports.duplicateFoldersToSendspace = duplicateFoldersToSendspace;
+module.exports.duplicateFoldersToSendspace = duplicateFoldersToSendspace
+module.exports.getUnbackupedFiles = getUnbackupedFiles;
