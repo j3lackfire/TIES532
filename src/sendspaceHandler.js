@@ -363,8 +363,8 @@ function _uploadMultipleFiles(filesPath, folderId, uploadInfo, callback) {
                 callback(err, 'Error uploading data to Sendspace!')
             } else {
                 console.log('Successfully upload data to the Sendspace server!');
-                console.log(body);
-                console.log('+++++++++++++++++++++++++\n');
+                // console.log(body);
+                // console.log('+++++++++++++++++++++++++\n');
                 callback(null, body);
             }
         });
@@ -373,7 +373,7 @@ function _uploadMultipleFiles(filesPath, folderId, uploadInfo, callback) {
     form.append('MAX_FILE_SIZE', uploadInfo.max_file_size);
     form.append('UPLOAD_IDENTIFIER', uploadInfo.upload_identifier);
     form.append('extra_info', uploadInfo.extra_info);
-    form.append('folder_id', folderId);
+    // form.append('folder_id', folderId);
     form.append('userfile',
         fs.createReadStream(filesPath[0]),
         {
@@ -393,6 +393,31 @@ function _uploadMultipleFiles(filesPath, folderId, uploadInfo, callback) {
     }
 }
 
+function moveFilesToFolder(fileIdList, folderId, callback) {
+    _getSessionKey((_session) => {
+        let fileListParam = fileIdList[0]
+        for (let i = 1; i < fileIdList.length; i ++) {
+            fileListParam += ',' + fileIdList[i]
+        }
+        request('http://api.sendspace.com/rest/?method=files.movetofolder&session_key=' + _session +
+            '&file_id=' + fileListParam +
+            '&folder_id=' + folderId,
+            (error, response, body) => {
+                _sendspaceResponseParser(error, response, body, (err_1, res_1) => {
+                    if (err_1) {
+                        console.Error('Error moving files inside sendspace stuffs')
+                        callback(err_1, null)
+                    } else {
+                        // console.log('Move files to folder with id - ' + folderId + ' - completed')
+                        callback(null, res_1)
+                    }
+                })
+            }
+        )
+    })
+
+}
+
 // uploadFiles(null, () => {})
 
 // checkSession(sessionKey, (error, returnBool) => {
@@ -407,3 +432,4 @@ module.exports.uploadFiles = uploadFiles;
 module.exports.getFoldersInfo = getFoldersInfo;
 module.exports.createFolder = createFolder;
 module.exports.getAllFiles = getAllFiles;
+module.exports.moveFilesToFolder = moveFilesToFolder;
