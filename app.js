@@ -5,6 +5,7 @@ const express = require('express');
 const app = express();
 
 const dropboxHandler = require('./src/dropboxHandler');
+const sendspaceHandler = require('./src/sendspaceHandler')
 
 /*dependencies:
     express - basic to set up a server
@@ -19,18 +20,27 @@ const dropboxHandler = require('./src/dropboxHandler');
     crypto - for md5 encryption, requred by sendspace
  */
 
-let dropboxAccessKey = 'KU1I6ilkxrAAAAAAAAAADmph3aEctjmw5LrRrAxHBeBsLabN0w2rN2j8hVlt84NA';
-let sendspaceApiKey = 'M3AL0C04KU';
-
 app.get('/', (req, res) => {
     res.json({
         message: 'Hello World!'
     });
 });
 
-app.get('/dropboxHandler', (req, res) => {
-    dropboxHandler.initDropboxHandler(
-        dropboxAccessKey,
+app.get('/initAll', (req, res) => {
+    dropboxHandler.initDropbox(req.headers.dropboxaccesskey)
+    sendspaceHandler.initSendspace(req.headers.sendspaceusername,
+        req.headers.sendspacemd5password,
+        req.headers.sendspaceapikey,
+        (err_1, res_1) => {
+            res.json({
+                Message: err_1 ? err_1 : res_1
+            })
+        })
+})
+
+
+app.get('/backup', (req, res) => {
+    dropboxHandler.doBackup(
         (_error, _message) => {
             if (_error) {
                 res.json({

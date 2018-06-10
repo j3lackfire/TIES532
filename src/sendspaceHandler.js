@@ -10,26 +10,17 @@ let stream = require('stream');
 let FormData = require('form-data');
 
 let myUserName = 'minhduc.gameregistry@gmail.com';
+let myPasswordMd5 = '6be3c296bfa4c35c1b5fcdbd1bc989a8';
 let myApiKey = 'M3AL0C04KU';
 
 // let myUserName = 'minhduc.lepham@gmail.com';
 // let myApiKey = 'HR7J2LQPQE';
 
 let baseRestfulApi = 'http://api.sendspace.com/rest/';
-let myPasswordMd5 = '6be3c296bfa4c35c1b5fcdbd1bc989a8';
 let sessionKey = '';
 let uploadInfo = {};
 
 // initialize sendspace first
-_loginAndGetUploadInfo((err, res) => {
-    if (err) {
-        console.error(err)
-    } else {
-        console.log('Init sendspace successfully')
-        console.log(sessionKey)
-        console.log(uploadInfo)
-    }
-})
 
 // deleteAllFolders((err, res) => {
 //     if (err) {
@@ -38,6 +29,43 @@ _loginAndGetUploadInfo((err, res) => {
 //         console.log(res)
 //     }
 // })
+
+function initSendspace(userName, md5Password, apiKey, callback) {
+    myUserName = userName
+    myPasswordMd5 = md5Password
+    myApiKey = apiKey
+    let sessionKey = '';
+    let uploadInfo = {};
+    _loginAndGetUploadInfo(userName, md5Password, apiKey,(err, res) => {
+        if (err) {
+            console.error(err)
+            callback(err, null)
+        } else {
+            callback(null, 'Init sendspace successfully')
+            console.log('Init sendspace successfully')
+            console.log(sessionKey)
+            console.log(uploadInfo)
+        }
+    })
+}
+
+function _loginAndGetUploadInfo(userName, md5Password, apiKey, callback) {
+    sendspaceLogin(userName, md5Password, apiKey, (err, res) => {
+        if (err) {
+            console.error('Error logging in sendspace!');
+            callback(err, null)
+        } else {
+            requestUploadInfo(res, (err_1, res_1) => {
+                if (err_1) {
+                    console.error('Error requesting upload info from sendspace')
+                    callback(err_1, 'Error requesting upload info from sendspace')
+                } else {
+                    callback(null, res_1)
+                }
+            })
+        }
+    })
+}
 
 function checkSession(sessionKey, callback) {
     request(
@@ -71,13 +99,13 @@ function authLogout(sessionKey, callback) {
         })
 }
 
-function sendspaceLogin(callback) {
-    requestAppToken((err, token) => {
-        let tokenPass = crypto.createHash('md5').update(token + myPasswordMd5).digest('hex')
+function sendspaceLogin(userName, md5Password, apiKey, callback) {
+    requestAppToken(apiKey, (err, token) => {
+        let tokenPass = crypto.createHash('md5').update(token + md5Password).digest('hex')
         console.log('Token: ' + token)
         console.log('Token pass: ' + tokenPass)
         // console.log(_getLogInRequestUrl(token, myUserName, tokenPass))
-        request(_getLogInRequestUrl(token, myUserName, tokenPass), (error, response, body) => {
+        request(_getLogInRequestUrl(token, userName, tokenPass), (error, response, body) => {
             if (error) {
                 console.log('Error logging into the Sendspace')
                 callback(error, null)
@@ -105,9 +133,10 @@ function sendspaceLogin(callback) {
     })
 }
 
-function requestAppToken(callback) {
-    request(_getRequestTokenUrl(), (error, response, body) => {
-        console.log(_getRequestTokenUrl());
+function requestAppToken(apiKey, callback) {
+    request(_getRequestTokenUrl(apiKey), (error, response, body) => {
+        console.log(apiKey)
+        console.log(_getRequestTokenUrl(apiKey));
         if (error) {
             console.log('Error requesting token from the sendspace server');
             callback(error, null)
@@ -141,9 +170,9 @@ function _getSessionKey(callback) {
     }
 }
 
-function _getRequestTokenUrl() {
+function _getRequestTokenUrl(apiKey) {
     return 'http://api.sendspace.com/rest/?method=auth.createtoken' +
-        '&api_key=' + myApiKey +
+        '&api_key=' + apiKey +
         '&api_version=1.2&response_format=json&app_version=0.1'
 }
 
@@ -320,23 +349,6 @@ function uploadFiles(filePath, folderId, callback) {
     }
 }
 
-function _loginAndGetUploadInfo(callback) {
-    sendspaceLogin((err, res) => {
-        if (err) {
-            console.error('Error logging in sendspace!');
-            callback(err, null)
-        } else {
-            requestUploadInfo(res, (err_1, res_1) => {
-                if (err_1) {
-                    console.error('Error requesting upload info from sendspace')
-                    callback(err_1, 'Error requesting upload info from sendspace')
-                } else {
-                    callback(null, res_1)
-                }
-            })
-        }
-    })
-}
 
 function requestUploadInfo(sessionKey, callback) {
     request(_getUploadInfoUrl(sessionKey), (err, result, body) => {
@@ -418,16 +430,7 @@ function moveFilesToFolder(fileIdList, folderId, callback) {
 
 }
 
-// uploadFiles(null, () => {})
-
-// checkSession(sessionKey, (error, returnBool) => {
-//     if (returnBool) console.log('Session is ok')
-// })
-
-// authLogout(sessionKey, (error, returnBool) => {
-//     console.log('Log out')
-// })
-
+module.exports.initSendspace = initSendspace
 module.exports.uploadFiles = uploadFiles;
 module.exports.getFoldersInfo = getFoldersInfo;
 module.exports.createFolder = createFolder;

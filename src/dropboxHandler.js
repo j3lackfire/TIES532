@@ -22,29 +22,30 @@ let baseParam = {
 let currentPath = process.cwd()
 console.log('current path: ' + currentPath)
 
-
 let allFolders = []
 let allFiles = []
 
 let folderTag = 'folder'
 let fileTag = 'file'
 
-function isEntryFolder(entry) { return entry['.tag'] == folderTag }
-
-function isEntryFile(entry) { return entry['.tag'] == fileTag }
-
-let onErrorReceived = (error) => { console.log(error) }
-
-function initDropboxHandler(_accessToken, callback) {
+function initDropbox(_accessToken) {
     allFolders = []
     allFiles = []
     new Dropbox({ accessToken: _accessToken })
+}
+
+function doBackup(callback) {
+    allFolders = []
+    allFiles = []
+    // new Dropbox({ accessToken: _accessToken })
     dbx.filesListFolder(baseParam)
         .then((res) => {
             onServerResponseReceived(res, callback)
         })
         .catch(onErrorReceived)
 }
+
+let onErrorReceived = (error) => { console.log(error) }
 
 //this function is called when we receive the response from Dropbox server
 let onServerResponseReceived = (res, callback) => {
@@ -72,6 +73,10 @@ let onServerResponseReceived = (res, callback) => {
     }
 }
 
+function isEntryFolder(entry) { return entry['.tag'] == folderTag }
+
+function isEntryFile(entry) { return entry['.tag'] == fileTag }
+
 //this function is called when we receive everything from the dropbox server
 function onListingCompleted(callback) {
     console.log('Finish getting all the meta data from dropbox server / Start making directory')
@@ -86,6 +91,10 @@ function onListingCompleted(callback) {
                 } else {
                     // console.log(res_files)
                     let totalNumberOfFiles = res_files.length;
+                    if (totalNumberOfFiles  == 0) {
+                        callback(null, 'No need to backup')
+                        return
+                    }
                     let numberOfSuccess = 0;
                     for (let i = 0; i < res_files.length; i ++) {
                         // console.log(res_files[i].fullPath)
@@ -171,4 +180,5 @@ function saveFileToLocal(name, fileBinary, callback) {
 //
 //     }).catch(onErrorReceived);
 
-module.exports.initDropboxHandler = initDropboxHandler;
+module.exports.doBackup = doBackup;
+module.exports.initDropbox = initDropbox;
