@@ -53,11 +53,11 @@ let onServerResponseReceived = (res, callback) => {
         if (isEntryFolder(res.entries[i])) {
             let addedEntry = {}
             addedEntry.name = res.entries[i].name
-            addedEntry.path = res.entries[i].path_display
+            addedEntry.path = res.entries[i].path_lower
             allFolders.push(addedEntry)
         } else {
             if (isEntryFile(res.entries[i])) {
-                allFiles.push(res.entries[i].path_display)
+                allFiles.push(res.entries[i].path_lower)
             }
         }
     }
@@ -82,24 +82,26 @@ function onListingCompleted(callback) {
             middleware.getUnbackupedFiles(allFiles, (err_getFiles, res_files) => {
                 if (err_getFiles) {
                     console.log(err_getFiles)
+                    callback(err_getFiles, null)
                 } else {
-                    console.log(res_files)
+                    // console.log(res_files)
                     let totalNumberOfFiles = res_files.length;
                     let numberOfSuccess = 0;
-                    let localFiles = []
                     for (let i = 0; i < res_files.length; i ++) {
-                        console.log(res_files[i].fullPath)
-                        downloadFileSingle(res_files[i].fullPath, (error, pathFull) => {
+                        // console.log(res_files[i].fullPath)
+                        downloadFileSingle(res_files[i].fullPath, (error, localDownloadedPath) => {
                             if (error) {
                                 console.error('Error downloading the file. something is wrong!')
                                 callback(error, 'Error downloading the file. something is wrong!')
                             } else {
                                 numberOfSuccess ++;
-                                console.log('File: -' + res_files[i].fullPath + '- index: ' + numberOfSuccess + '/' + totalNumberOfFiles)
-                                localFiles.push(pathFull)
+                                // console.log('File: -' + res_files[i].fullPath + '- index: ' + numberOfSuccess + '/' + totalNumberOfFiles)
+                                res_files[i].localPath = localDownloadedPath
+                                // localFiles.push(localDownloadedPath)
                                 if (numberOfSuccess >= totalNumberOfFiles) {
-                                    console.log('The backup process is completed')
-                                    middleware.backupFilesToSendspace(localFiles, callback)
+                                    console.log('Finish saving dropbox files to local!')
+                                    // middleware.backupFilesToSendspace(localFiles, callback)
+                                    middleware.backupFilesToSendspace(res_files, callback)
                                 }
                             }
                         })
@@ -113,7 +115,10 @@ function onListingCompleted(callback) {
 function makeDirectory(callback) {
     for (let i = 0; i < allFolders.length; i ++) {
         mkdirp(currentPath + '/cache' + allFolders[i].path, (err) => {
-            console.log(err ? err : 'Succesfully create a directory: ' + allFolders[i].path)
+            if (err) {
+                console.log(err)
+            }
+            // console.log(err ? err : 'Succesfully create a local  directory: ' + allFolders[i].path)
         });
     }
     middleware.duplicateFoldersToSendspace(allFolders, (err) => {

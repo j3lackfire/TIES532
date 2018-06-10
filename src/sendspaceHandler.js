@@ -31,13 +31,13 @@ _loginAndGetUploadInfo((err, res) => {
     }
 })
 
-deleteAllFolders((err, res) => {
-    if (err) {
-        console.error(err)
-    } else {
-        console.log(res)
-    }
-})
+// deleteAllFolders((err, res) => {
+//     if (err) {
+//         console.error(err)
+//     } else {
+//         console.log(res)
+//     }
+// })
 
 function checkSession(sessionKey, callback) {
     request(
@@ -294,7 +294,7 @@ function _recursiveGetAllFiles(foldersList, index, _fileList, callback) {
         })
 }
 
-function uploadFiles(filePath, callback) {
+function uploadFiles(filePath, folderId, callback) {
     if (sessionKey === '') {
         _loginAndGetUploadInfo((err, res) => {
             if (err) {
@@ -314,7 +314,7 @@ function uploadFiles(filePath, callback) {
                     }
                 })
             } else {
-                _uploadMultipleFiles(filePath, uploadInfo, callback)
+                _uploadMultipleFiles(filePath, folderId, uploadInfo, callback)
             }
         })
     }
@@ -353,7 +353,7 @@ function _getUploadInfoUrl(sessionKey) {
         '&speed_limit=0'
 }
 
-function _uploadMultipleFiles(filesPath, uploadInfo, callback) {
+function _uploadMultipleFiles(filesPath, folderId, uploadInfo, callback) {
     let req = request.post(
         uploadInfo.url,
         (err, httpResponse, body) => {
@@ -364,7 +364,7 @@ function _uploadMultipleFiles(filesPath, uploadInfo, callback) {
             } else {
                 console.log('Successfully upload data to the Sendspace server!');
                 console.log(body);
-                console.log('\n\n+++++++++++++++++++++++++\n');
+                console.log('+++++++++++++++++++++++++\n');
                 callback(null, body);
             }
         });
@@ -373,6 +373,7 @@ function _uploadMultipleFiles(filesPath, uploadInfo, callback) {
     form.append('MAX_FILE_SIZE', uploadInfo.max_file_size);
     form.append('UPLOAD_IDENTIFIER', uploadInfo.upload_identifier);
     form.append('extra_info', uploadInfo.extra_info);
+    form.append('folder_id', folderId);
     form.append('userfile',
         fs.createReadStream(filesPath[0]),
         {

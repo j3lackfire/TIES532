@@ -4,8 +4,6 @@
 let sendspaceHandler = require('./sendspaceHandler');
 let dropboxHandler = require('./dropboxHandler')
 
-let s = '/bascb/cav/d//alsvkj'
-
 //duplicate the folders from dropbox to sendspace.
 function duplicateFoldersToSendspace(dropboxFoldersInfo, callback) {
     console.log('Duplicate the folder from dropbox to sendspace')
@@ -16,12 +14,12 @@ function duplicateFoldersToSendspace(dropboxFoldersInfo, callback) {
     folders.sort(function(a,b) {
         return a.depth - b.depth;
     })
-    console.log(folders)
+    // console.log(folders)
     sendspaceHandler.getFoldersInfo((err, info) => {
         if (err) {
             callback(err)
         } else {
-            console.log(info)
+            // console.log(info)
             _createFolderSendSpaceRecursive(folders, info, 0, (err_1, res_1) => {
                 if (err_1) {
                     callback(err_1)
@@ -48,10 +46,10 @@ function _getFolderInfo(folderPath) {
 
 function _createFolderSendSpaceRecursive(folders, sendspaceInfo, index, callback) {
     if (!_isFolderExistInSendspace(folders[index].name, sendspaceInfo)) {
-        console.log('Create a folder inside sendspace ' + folders[index].name)
+        // console.log('Create a folder inside sendspace ' + folders[index].name)
         let sendspaceFolderId = folders[index].depth == 0 ? '0' : _getSendspaceFolderID(folders[index].parent, sendspaceInfo)
-        console.log(folders[index])
-        console.log(sendspaceFolderId)
+        // console.log(folders[index])
+        // console.log(sendspaceFolderId)
         sendspaceHandler.createFolder(folders[index].name, sendspaceFolderId, (err_1, res_1) => {
             if (err_1) {
                 console.error(err_1)
@@ -82,7 +80,7 @@ function _createFolderSendSpaceRecursive(folders, sendspaceInfo, index, callback
 function _isFolderExistInSendspace(folderName, sendspaceFolders) {
     let isExist = false
     for (let i = 0; i < sendspaceFolders.length; i ++) {
-        if (sendspaceFolders[i].name == 'Default' || sendspaceFolders[i].parent_folder_id != '0') {
+        if (sendspaceFolders[i].name == 'Default') {
             continue
         }
         if (sendspaceFolders[i].name == folderName) {
@@ -102,7 +100,7 @@ function _getSendspaceFolderID(folderName, sendspaceInfo) {
             return sendspaceInfo[i].id
         }
     }
-    return ''
+    return '0'
 }
 
 //dropbox will call this function
@@ -126,6 +124,7 @@ function getUnbackupedFiles(dropboxFiles, callback) {
                     notExistFileList.push(_analyzeDropboxFiles(dropboxFiles[i]))
                 }
             }
+            console.log('\nBackup - ' + notExistFileList.length + ' - files / over - ' + dropboxFiles.length)
             callback(null, notExistFileList)
         }
     })
@@ -155,17 +154,104 @@ function _compareDropboxAndSsFiles(dbFile, ssFile) {
     // }
 }
 
-function backupFilesToSendspace(allFilePaths, callback) {
-    console.log('backupFilesToSendspace')
-    sendspaceHandler.uploadFiles(allFilePaths, (err, res) => {
-        if (err) {
-            callback(err, null)
+function backupFilesToSendspace(dropboxFilesInfo, callback) {
+    console.log('backup Files To Sendspace')
+    sendspaceHandler.getFoldersInfo((err_1, ssFolderInfo) => {
+        if (err_1) {
+            callback(err_1, null)
         } else {
-            console.log('The backup process is completed, ' + allFilePaths.length + ' files is copied')
-            callback(null, res)
-            //also delete all the file on local as well, to not waste hdd
+            _divideFilesByFolders(dropboxFilesInfo, ssFolderInfo, (pushingInfo) => {
+                console.log('Divide files from dropbox into seperate folders.')
+                // for (let i = 0; i < pushingInfo.length; i ++) {
+                //     console.log(pushingInfo[i])
+                // }
+                _recursiveBackupFileToSendspace(pushingInfo, 0, (err_2, res_2)=> {
+                    if (err_2) {
+                        callback(err_2, null)
+                    } else {
+                        console.log('\n\nFinally, backup completed')
+                        callback(null, res_2)
+                    }
+                })
+
+
+            })
         }
     })
+
+}
+
+function _divideFilesByFolders(dropboxFiles, sendspaceFolderInfo, callback) {
+    let returnList = []
+    let firstVal = {}
+    firstVal.folderName = 'Default'
+    firstVal.folderId = '0'
+    firstVal.fileList = []
+    returnList.push(firstVal)
+    for (let i = 0; i < dropboxFiles.length; i ++) {
+        let folderIndex = _getFolderId(dropboxFiles[i], returnList)
+        if (folderIndex == -1) {
+            let myVal = {}
+            myVal.folderName = dropboxFiles[i].folder
+            myVal.folderId = _getSendspaceFolderID(dropboxFiles[i].folder, sendspaceFolderInfo)
+            myVal.fileList = []
+            let myFile = {}
+            myFile.name = dropboxFiles[i].name
+            myFile.path = dropboxFiles[i].localPath
+            myVal.fileList.push(myFile)
+            returnList.push(myVal)
+        } else {
+            let myFile = {}
+            myFile.name = dropboxFiles[i].name
+            myFile.path = dropboxFiles[i].localPath
+            returnList[folderIndex].fileList.push(myFile)
+        }
+    }
+    callback(returnList)
+}
+
+function _getFolderId(fileInfo, returnList) {
+    for (let i = 0; i < returnList.length; i ++) {
+        if ((returnList[i].folderName == fileInfo.folder) ||
+            (returnList[i].folderName == 'Default' && fileInfo.folder == '')) {
+            return i
+        }
+    }
+    return -1
+}
+
+function _recursiveBackupFileToSendspace(pushingInfo, index, callback) {
+    // console.log('Backup all file from folder - ' + pushingInfo.length)
+    console.log(pushingInfo[index].folderId)
+    let filesPathList = []
+    for (let i = 0; i < pushingInfo[index].fileList.length; i ++) {
+        filesPathList.push(pushingInfo[index].fileList[i].path)
+    }
+
+    if (filesPathList.length == 0) {
+        if (index + 1 >= pushingInfo.length) {
+            callback(null, 'OK')
+        } else {
+            _recursiveBackupFileToSendspace(pushingInfo, index + 1, callback)
+        }
+    } else {
+        sendspaceHandler.uploadFiles(filesPathList, pushingInfo[index].folderId, (err, res) => {
+            if (err) {
+                callback(err, null)
+            } else {
+                console.log('Upload files to sendspace response: ')
+                console.log(res)
+                if (index + 1 >= pushingInfo.length) {
+                    callback(null, 'OK')
+                } else {
+                    setTimeout(() => {
+                        _recursiveBackupFileToSendspace(pushingInfo, index + 1, callback)
+                    }, 5000);
+
+                }
+            }
+        })
+    }
 }
 
 module.exports.backupFilesToSendspace = backupFilesToSendspace;
