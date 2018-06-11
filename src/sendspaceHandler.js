@@ -100,6 +100,10 @@ function authLogout(sessionKey, callback) {
 }
 
 function sendspaceLogin(userName, md5Password, apiKey, callback) {
+    if (md5Password == null || typeof(md5Password) == 'undefined') {
+        callback('Error, missing information', null)
+        return
+    }
     requestAppToken(apiKey, (err, token) => {
         let tokenPass = crypto.createHash('md5').update(token + md5Password).digest('hex')
         console.log('Token: ' + token)
@@ -142,7 +146,11 @@ function requestAppToken(apiKey, callback) {
             callback(error, null)
         } else {
             parser.parseString(body, function (err, result) {
-                callback(null, result.result.token[0])
+                if (!result.result.token) {
+                    callback('Wrong app info, auth error!!', null)
+                }  else {
+                    callback(null, result.result.token[0])
+                }
             });
         }
     })
@@ -150,7 +158,7 @@ function requestAppToken(apiKey, callback) {
 
 function _getSessionKey(callback) {
     if (sessionKey === '') {
-        sendspaceLogin((err, res) => {
+        sendspaceLogin(null, null, null, (err, res) => {
             callback(err ? null : res)
         })
     } else {
@@ -159,7 +167,7 @@ function _getSessionKey(callback) {
                 callback(null)
             } else {
                 if (!result) {
-                    sendspaceLogin((err, res) => {
+                    sendspaceLogin(null, null, null, (err, res) => {
                         callback(err ? null : res)
                     })
                 } else {

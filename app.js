@@ -3,9 +3,13 @@
  */
 const express = require('express');
 const app = express();
+const http = require('http')
+var cors = require('cors')
 
 const dropboxHandler = require('./src/dropboxHandler');
 const sendspaceHandler = require('./src/sendspaceHandler')
+
+app.use(cors())
 
 /*dependencies:
     express - basic to set up a server
@@ -18,9 +22,11 @@ const sendspaceHandler = require('./src/sendspaceHandler')
     mkdirp - to create a directory to save file and stuffs //only to test on local though
     fs - file system, to save file and stuffs
     crypto - for md5 encryption, requred by sendspace
+    cors - cross platform something, so that my frontend can call to this backend
  */
 
 app.get('/', (req, res) => {
+    console.log('Hello world is called!!!')
     res.json({
         message: 'Hello World!'
     });
@@ -58,4 +64,5 @@ app.get('/backup', (req, res) => {
 
 app.listen(3003);
 console.log('Express app listening on port 3003');
+
 
